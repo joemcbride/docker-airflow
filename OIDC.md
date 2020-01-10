@@ -6,21 +6,30 @@ To use Auth0 with Airflow, we need to set a custom SecurityManager for Flask in 
 SECURITY_MANAGER_CLASS = AirflowOIDCSecurityManager
 ```
 
-I tried to use https://github.com/ministryofjustice/fab-oidc as the Security Manager, though I kept getting too many redirects.  fab-oidc is a small wrapper around https://github.com/puiterwijk/flask-oidc.  May need to write our own custom Security Manager or figure out what configuration I have incorrect.
-
 To set the correct values for Auth0, a `client_secrets.json` file is required in the `config` folder.  There is an `client_secrets_example.json` that shows the basic setup (the values can be retrieved from the Auth0 applicaton settings).
 
 Airflow security manager configuration: https://github.com/apache/airflow/blob/8a8e65a374a5d29ef2ceb380915eda26071ea7fe/airflow/www/app.py#L93
 flask docs: https://flask-appbuilder.readthedocs.io/en/latest/security.html#your-custom-security
-fab-oidc docs: https://github.com/ministryofjustice/fab-oidc
-flask-oidc docs: https://flask-oidc.readthedocs.io/en/latest/
+Auth0 python docs: https://auth0.com/docs/quickstart/webapp/python/01-login
+
+# Auth0
+
+Auth0 also needs to be configured with the following settings:
+
+```
+// Allowed Callback URLs
+http://localhost:8080/oidc_callback
+
+// Allowed Logout URLs
+http://localhost:8080
+```
 
 # Building + Running the Docker Image
 
-You need to run the docker image with the `fab-oidc` dependency.
+You need to run the docker image with the following dependencies:
 
 ```
-docker build --rm --build-arg PYTHON_DEPS="fab-oidc>=0.0.9" -t puckel/docker-airflow .
+docker build --rm --build-arg PYTHON_DEPS="authlib>=0.13 six>=1.13.0" -t puckel/docker-airflow .
 ```
 
 Run the docker image inline so you can see the logs

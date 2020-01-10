@@ -18,6 +18,7 @@
 # under the License.
 """Default configuration for the Airflow webserver"""
 import os
+import json
 
 # from flask_appbuilder.security.manager import AUTH_DB
 
@@ -28,7 +29,112 @@ from airflow.configuration import conf
 from flask_appbuilder.security.manager import AUTH_OID
 # from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 
-from fab_oidc.security import AirflowOIDCSecurityManager
+from flask import redirect, request
+from flask_appbuilder.security.views import AuthOIDView
+from flask_login import login_user
+from flask_admin import expose
+
+from flask import url_for
+from authlib.integrations.flask_client import OAuth
+from six.moves.urllib.parse import urlencode
+from airflow.www_rbac.security import AirflowSecurityManager
+from logging import getLogger
+log = getLogger(__name__)
+
+# Set the OIDC field that should be used as a username
+USERNAME_OIDC_FIELD = os.getenv('USERNAME_OIDC_FIELD', default='sub')
+FIRST_NAME_OIDC_FIELD = os.getenv('FIRST_NAME_OIDC_FIELD',
+                                  default='given_name')
+LAST_NAME_OIDC_FIELD = os.getenv('LAST_NAME_OIDC_FIELD',
+                                 default='family_name')
+
+class AuthOIDCView(AuthOIDView):
+    @expose('/login/', methods=['GET', 'POST'])
+    def login(self, flag=True):
+        sm = self.appbuilder.sm
+        auth0 = sm.auth0
+        return auth0.authorize_redirect(redirect_uri=sm.oAuthSettings['login_redirect_url'])
+
+    @expose('/logout/', methods=['GET'])
+    def logout(self):
+
+        log.info('logout')
+
+        # log user out of airflow
+        super(AuthOIDCView, self).logout()
+
+        sm = self.appbuilder.sm
+        auth0 = sm.auth0
+
+        log.info('auth0 logout')
+
+        # Redirect user to Auth0 logout endpoint
+        return_to_url = url_for('routes.index', _external=True)
+        log.info('return to url: ' + return_to_url)
+        params = {'returnTo': return_to_url, 'client_id': sm.oAuthSettings['client_id']}
+        return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
+
+    @expose('/oidc_callback/', methods=['GET', 'POST'])
+    def callback(self, flag=True):
+
+        log.info('oidc_callback')
+
+        sm = self.appbuilder.sm
+        auth0 = sm.auth0
+
+        # Handles response from token endpoint
+        auth0.authorize_access_token()
+        resp = auth0.get('userinfo')
+        userinfo = resp.json()
+
+        log.debug(userinfo)
+
+        user = sm.auth_user_oid(userinfo['email'])
+
+        if user is None:
+            log.info('registering user')
+            user = sm.add_user(
+                username=userinfo[USERNAME_OIDC_FIELD],
+                first_name=userinfo[FIRST_NAME_OIDC_FIELD],
+                last_name=userinfo[LAST_NAME_OIDC_FIELD],
+                email=userinfo['email'],
+                role=sm.find_role(sm.auth_user_registration_role)
+            )
+
+        log.info('logging in user')
+        login_user(user, remember=False)
+
+        return redirect(self.appbuilder.get_url_for_index)
+
+class OIDCSecurityManagerMixin:
+
+    def __init__(self, appbuilder):
+        super().__init__(appbuilder)
+        if self.auth_type == AUTH_OID:
+
+            with open('client_secrets.json', 'r') as secrets_file:
+                json_data=secrets_file.read()
+
+            self.oAuthSettings = json.loads(json_data)
+
+            self.oauth = OAuth(self.appbuilder.get_app)
+            self.auth0 = self.oauth.register(
+                'auth0',
+                client_id=self.oAuthSettings['client_id'],
+                client_secret=self.oAuthSettings['client_secret'],
+                api_base_url=self.oAuthSettings['api_base_url'],
+                access_token_url=self.oAuthSettings['access_token_url'],
+                authorize_url=self.oAuthSettings['authorize_url'],
+                client_kwargs={
+                    'scope': self.oAuthSettings['scope'],
+                },
+            )
+            self.authoidview = AuthOIDCView
+
+
+class AirflowOIDCSecurityManager(OIDCSecurityManagerMixin, AirflowSecurityManager):
+    pass
+
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
