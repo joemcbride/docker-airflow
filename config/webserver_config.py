@@ -74,7 +74,7 @@ class AuthOIDCView(AuthOIDView):
         params = {'returnTo': return_to_url, 'client_id': sm.oAuthSettings['client_id']}
         return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
-    @expose('/oidc_callback/', methods=['GET', 'POST'])
+    @expose('/oidc_callback/', methods=['GET'])
     def callback(self, flag=True):
 
         log.info('oidc_callback')
@@ -107,15 +107,19 @@ class AuthOIDCView(AuthOIDView):
         return redirect(self.appbuilder.get_url_for_index)
 
 class OIDCSecurityManagerMixin:
-
     def __init__(self, appbuilder):
         super().__init__(appbuilder)
         if self.auth_type == AUTH_OID:
 
-            with open('client_secrets.json', 'r') as secrets_file:
-                json_data=secrets_file.read()
-
-            self.oAuthSettings = json.loads(json_data)
+            self.oAuthSettings = {
+                'client_id': os.getenv('AUTH0_CLIENT_ID', default=''),
+                'client_secret': os.getenv('AUTH0_CLIENT_SECRET', default=''),
+                'api_base_url': os.getenv('AUTH0_API_BASE_URL', default=''),
+                'access_token_url': os.getenv('AUTH0_ACCESS_TOKEN_URL', default=''),
+                'authorize_url': os.getenv('AUTH0_AUTHORIZE_URL', default=''),
+                'scope': os.getenv('AUTH0_SCOPE', default=''),
+                'login_redirect_url': os.getenv('AUTH0_LOGIN_REDIRECT_URL', default='')
+            }
 
             self.oauth = OAuth(self.appbuilder.get_app)
             self.auth0 = self.oauth.register(
@@ -193,9 +197,6 @@ AUTH_USER_REGISTRATION_ROLE = "Admin"
 #             'consumer_secret': SECRET_KEY,
 #         }
 # }]
-
-OIDC_CLIENT_SECRETS = '/usr/local/airflow/client_secrets.json'
-OIDC_SCOPES = 'openid profile email'
 
 # When using LDAP Auth, setup the ldap server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"

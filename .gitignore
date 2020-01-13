@@ -26,3 +26,4 @@ sftp-config.json
 __pycache__
 
 client_secrets.json
+run.sh

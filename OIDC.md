@@ -29,13 +29,21 @@ http://localhost:8080
 You need to run the docker image with the following dependencies:
 
 ```
-docker build --rm --build-arg PYTHON_DEPS="authlib>=0.13 six>=1.13.0" -t puckel/docker-airflow .
+docker build --rm --build-arg PYTHON_DEPS="authlib>=0.13 six>=1.13.0 azure-storage-blob==2.1.0" -t joemcbride/docker-airflow .
 ```
 
 Run the docker image inline so you can see the logs
 
 ```
-docker run -p 8080:8080 puckel/docker-airflow webserver
+docker run -p 8080:8080 \
+-e AUTH0_CLIENT_ID='' \
+-e AUTH0_CLIENT_SECRET='' \
+-e AUTH0_API_BASE_URL='https://{tenant}.auth0.com' \
+-e AUTH0_ACCESS_TOKEN_URL='https://{tenant}.auth0.com/oauth/token' \
+-e AUTH0_AUTHORIZE_URL='https://{tenant}.auth0.com/authorize' \
+-e AUTH0_SCOPE='openid profile email' \
+-e AUTH0_LOGIN_REDIRECT_URL='http://localhost:8080/oidc_callback' \
+joemcbride/docker-airflow webserver
 ```
 
 # Flask Logs
