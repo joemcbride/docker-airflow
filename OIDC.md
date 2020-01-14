@@ -6,7 +6,7 @@ To use Auth0 with Airflow, we need to set a custom SecurityManager for Flask in 
 SECURITY_MANAGER_CLASS = AirflowOIDCSecurityManager
 ```
 
-To set the correct values for Auth0, a `client_secrets.json` file is required in the `config` folder.  There is an `client_secrets_example.json` that shows the basic setup (the values can be retrieved from the Auth0 applicaton settings).
+To set the correct values for Auth0, several configuration values need to be passed as environment variables.  There is an example below that shows the basic setup (the values can be retrieved from the Auth0 applicaton settings).
 
 Airflow security manager configuration: https://github.com/apache/airflow/blob/8a8e65a374a5d29ef2ceb380915eda26071ea7fe/airflow/www/app.py#L93
 flask docs: https://flask-appbuilder.readthedocs.io/en/latest/security.html#your-custom-security
@@ -44,6 +44,37 @@ docker run -p 8080:8080 \
 -e AUTH0_SCOPE='openid profile email' \
 -e AUTH0_LOGIN_REDIRECT_URL='http://localhost:8080/oidc_callback' \
 joemcbride/docker-airflow webserver
+```
+
+Here's and example `docker-compose.yml` file:
+
+```
+version: '3'
+services:
+  airflow:
+    image: "joemcbride/docker-airflow"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./files:/usr/local/airflow/files
+    environment:
+      LOAD_EX: n
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      AUTH0_API_BASE_URL: https://${AUTH0_TENANT}.auth0.com
+      AUTH0_ACCESS_TOKEN_URL: https://${AUTH0_TENANT}.auth0.com/oauth/token
+      AUTH0_AUTHORIZE_URL: https://${AUTH0_TENANT}.auth0.com/authorize
+      AUTH0_SCOPE: openid profile email
+      AUTH0_LOGIN_REDIRECT_URL: http://localhost:8080/oidc_callback
+```
+
+and an associated `.env` file:
+
+```
+AUTH0_CLIENT_ID=...
+AUTH0_CLIENT_SECRET=...
+AUTH0_TENANT=...
 ```
 
 # Flask Logs

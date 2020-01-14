@@ -28,8 +28,6 @@ Optionally install [Extra Airflow Packages](https://airflow.incubator.apache.org
     docker build --rm --build-arg AIRFLOW_DEPS="datadog,dask" -t puckel/docker-airflow .
     docker build --rm --build-arg PYTHON_DEPS="flask_oauthlib>=0.9" -t puckel/docker-airflow .
 
-    docker build --rm --build-arg PYTHON_DEPS="fab-oidc>=0.0.9" -t puckel/docker-airflow .
-
 or combined
 
     docker build --rm --build-arg AIRFLOW_DEPS="datadog,dask" --build-arg PYTHON_DEPS="flask_oauthlib>=0.9" -t puckel/docker-airflow .
