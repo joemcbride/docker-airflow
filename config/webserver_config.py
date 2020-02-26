@@ -69,7 +69,10 @@ class AuthOIDCView(AuthOIDView):
         log.info('auth0 logout')
 
         # Redirect user to Auth0 logout endpoint
-        return_to_url = url_for('routes.index', _external=True)
+        use_https = os.getenv('AUTH0_LOGOUT_USE_HTTPS', default = 'True') == 'True' 
+        scheme = 'https' if use_https else 'http'
+
+        return_to_url = url_for('routes.index', _external=True, _scheme=scheme)
         log.info('return to url: ' + return_to_url)
         params = {'returnTo': return_to_url, 'client_id': sm.oAuthSettings['client_id']}
         return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
