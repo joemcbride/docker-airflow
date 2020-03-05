@@ -7,6 +7,8 @@
 
 TRY_LOOP="20"
 
+: "${PORT:=${PORT:=8080}}"
+
 # Global defaults and back-compat
 : "${AIRFLOW_HOME:="/usr/local/airflow"}"
 : "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=$(python -c "from cryptography.fernet import Fernet; FERNET_KEY = Fernet.generate_key().decode(); print(FERNET_KEY)")}}"
@@ -18,6 +20,7 @@ if [[ -z "$AIRFLOW__CORE__LOAD_EXAMPLES" && "${LOAD_EX:=n}" == n ]]; then
 fi
 
 export \
+  PORT
   AIRFLOW_HOME \
   AIRFLOW__CORE__EXECUTOR \
   AIRFLOW__CORE__FERNET_KEY \
@@ -114,7 +117,8 @@ case "$1" in
       # With the "Local" and "Sequential" executors it should all run in one container.
       airflow scheduler &
     fi
-    exec airflow webserver
+    echo "executing airflow webserver on port $PORT"
+    exec airflow webserver -p $PORT
     ;;
   worker|scheduler)
     # Give the webserver time to run initdb.
