@@ -53,6 +53,12 @@ RUN set -ex \
         rsync \
         netcat \
         locales \
+        unixodbc \
+        unixodbc-dev \
+        tdsodbc \
+        freetds-common \
+        freetds-bin \
+        freetds-dev \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
@@ -62,6 +68,7 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
+    && pip install pyodbc==4.0.30 \
     && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
     && pip install 'redis==3.2' \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
@@ -81,6 +88,7 @@ COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 COPY config/webserver_config.py ${AIRFLOW_USER_HOME}/webserver_config.py
 COPY config/log_config.py ${AIRFLOW_USER_HOME}/config/log_config.py
 COPY config/__init__.py ${AIRFLOW_USER_HOME}/config/__init__.py
+ADD odbcinst.ini /etc/
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 
