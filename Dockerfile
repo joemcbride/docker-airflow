@@ -88,7 +88,7 @@ COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 COPY config/webserver_config.py ${AIRFLOW_USER_HOME}/webserver_config.py
 COPY config/log_config.py ${AIRFLOW_USER_HOME}/config/log_config.py
 COPY config/__init__.py ${AIRFLOW_USER_HOME}/config/__init__.py
-ADD odbcinst.ini /etc/
+COPY odbcinst.ini /etc/odbcinst.ini
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 
